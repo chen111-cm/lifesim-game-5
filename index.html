@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>人生模拟器 · LifeSim Pro</title>
+<style>
+:root {
+  --bg:#0f0f1a; --panel:#1a1a2e; --card:#252540;
+  --text:#e8e8f0; --dim:#8888aa; --accent:#4cc9f0;
+  --green:#06d6a0; --red:#ef476f; --gold:#ffd166;
+  --purple:#9b5de5; --orange:#ff9770; --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-size:14px;line-height:1.5;
+  user-select:none;-webkit-user-select:none;}
+#app{width:100%;height:100%;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative;}
+#top-bar{padding:9px 16px;background:var(--panel);border-bottom:1px solid rgba(255,255,255,.05);}
+.top-row{display:flex;justify-content:space-between;align-items:center;}
+.age-big{font-size:20px;font-weight:bold;color:var(--accent);}
+.phase-tag{font-size:11px;background:var(--purple);color:#fff;padding:2px 8px;border-radius:10px;margin-left:8px;}
+.money-tag{color:var(--gold);font-weight:bold;font-size:14px;}
+.phase-bar{margin-top:5px;}
+.phase-bar-track{height:4px;background:var(--card);border-radius:2px;}
+.phase-bar-fill{height:100%;background:var(--purple);border-radius:2px;transition:width .5s;}
+#char-panel{padding:7px 16px;background:var(--panel);border-bottom:1px solid rgba(255,255,255,.05);}
+.stat-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px;}
+.stat-tag{background:var(--card);padding:2px 8px;border-radius:16px;font-size:11px;color:var(--dim);}
+.stat-tag .val{color:var(--text);font-weight:bold;margin-left:3px;}
+.stat-tag.hot .val{color:var(--gold);}
+.bar-group{display:flex;gap:6px;margin-top:5px;}
+.bar-item{flex:1;}
+.bar-label{font-size:10px;color:var(--dim);display:flex;justify-content:space-between;}
+.bar-track{height:5px;background:var(--card);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+#main-area{flex:1;overflow-y:auto;padding:12px 16px;-webkit-overflow-scrolling:touch;}
+.sec-title{color:var(--dim);font-size:12px;margin:14px 0 6px;display:flex;justify-content:space-between;align-items:center;}
+.sec-title:first-child{margin-top:0;}
+.choices{display:flex;flex-direction:column;gap:7px;}
+.choice-btn{background:var(--card);border:1px solid rgba(255,255,255,.06);color:var(--text);
+  padding:10px 12px;border-radius:10px;text-align:left;font-size:13px;cursor:pointer;
+  font-family:inherit;transition:.15s;width:100%;}
+.choice-btn:active{transform:scale(.98);background:#2f2f52;}
+.choice-btn .cost{font-size:11px;color:var(--dim);margin-top:2px;}
+.choice-btn.disabled{opacity:.35;pointer-events:none;}
+.choice-btn.hi{border-color:var(--gold);}
+.choice-btn.ph{border-color:var(--purple);background:#2a2145;}
+.msg{background:var(--card);padding:9px 11px;border-radius:9px;font-size:12px;margin-bottom:6px;line-height:1.6;}
+.msg .title{font-weight:bold;font-size:13px;margin-bottom:5px;}
+.msg.good{border-left:3px solid var(--green);}
+.msg.bad{border-left:3px solid var(--red);}
+.msg.story{border-left:3px solid var(--gold);}
+.msg.event{border-left:3px solid var(--dim);}
+.msg.phase-intro{border-left:3px solid var(--accent);background:#1e2a4a;}
+.msg.danger{border-left:3px solid var(--red);background:#3a1a26;}
+#bottom-bar{padding:9px 12px;background:var(--panel);border-top:1px solid rgba(255,255,255,.05);
+  display:flex;gap:7px;align-items:center;}
+.btn-primary{flex:1.6;background:var(--accent);color:#0a0a14;border:none;padding:12px;border-radius:10px;
+  font-size:15px;font-weight:bold;cursor:pointer;font-family:inherit;}
+.btn-primary:active{transform:scale(.98);}
+.btn-secondary{flex:1;background:var(--card);color:var(--text);border:none;padding:12px 4px;border-radius:10px;
+  font-size:12px;cursor:pointer;font-family:inherit;}
+#modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,.72);display:none;
+  align-items:center;justify-content:center;padding:20px;z-index:50;}
+#modal-overlay.show{display:flex;}
+#modal{background:var(--panel);border-radius:16px;padding:18px;max-width:440px;width:100%;
+  max-height:82%;overflow-y:auto;}
+#modal h3{font-size:16px;margin-bottom:12px;}
+#modal .choice-btn{margin-bottom:7px;}
+.rel-card{display:flex;align-items:center;gap:10px;background:var(--card);padding:9px 11px;
+  border-radius:10px;margin-bottom:7px;}
+.rel-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0;}
+.rel-info{flex:1;min-width:0;}
+.rel-info .name{font-size:13px;font-weight:bold;}
+.rel-info .desc{font-size:11px;color:var(--dim);}
+.mini-track{height:4px;background:#1a1a2e;border-radius:2px;margin-top:3px;overflow:hidden;}
+.mini-fill{height:100%;border-radius:2px;}
+.kv{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px;}
+.box{background:var(--card);padding:12px;border-radius:12px;margin-bottom:10px;}
+.talent-btn{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:12px;
+  padding:12px;text-align:left;width:100%;margin-bottom:8px;cursor:pointer;color:var(--text);font-family:inherit;}
+.talent-btn:active{border-color:var(--gold);}
+.talent-btn .tn{font-size:14px;font-weight:bold;}
+.talent-btn .td{font-size:11px;color:var(--dim);margin-top:3px;}
+.ach{display:inline-block;background:var(--card);border-radius:8px;padding:4px 8px;font-size:11px;margin:0 5px 5px 0;}
+.ach.got{background:#3a3210;color:var(--gold);}
+#main-area::-webkit-scrollbar,#modal::-webkit-scrollbar{width:0;}
+/* 事业发展卡片 */
+.career-card{background:linear-gradient(135deg,#2a2145,#252540);border:1px solid var(--gold);
+  border-radius:12px;padding:12px;margin-bottom:12px;position:relative;overflow:hidden;}
+.career-card::before{content:"";position:absolute;top:0;left:0;width:4px;height:100%;background:var(--gold);}
+.career-head{display:flex;justify-content:space-between;align-items:flex-start;}
+.career-title{font-size:15px;font-weight:bold;}
+.career-title .track-tag{font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px;color:#fff;vertical-align:middle;}
+.career-sub{font-size:11px;color:var(--dim);margin-top:2px;}
+.career-route-link{font-size:11px;color:var(--accent);cursor:pointer;white-space:nowrap;}
+.promote-box{margin-top:10px;background:rgba(0,0,0,.2);border-radius:9px;padding:9px 10px;}
+.promote-next{font-size:12px;color:var(--text);}
+.promote-next b{color:var(--gold);}
+.promote-gap{font-size:11px;color:var(--dim);margin-top:3px;}
+.promote-btn{display:block;width:100%;margin-top:8px;background:var(--gold);color:#000;border:none;
+  padding:10px;border-radius:9px;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit;
+  animation:pulseGold 1.6s infinite;}
+.promote-btn:active{transform:scale(.98);}
+.seek-btn{display:block;width:100%;margin-top:8px;background:var(--accent);color:#fff;border:none;
+  padding:10px;border-radius:9px;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit;}
+@keyframes pulseGold{0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.5);}50%{box-shadow:0 0 0 6px rgba(255,209,102,0);}}
+/* 职业路线图阶梯 */
+.track-block{margin-bottom:14px;}
+.track-name{font-size:13px;font-weight:bold;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.ladder-step{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;margin-bottom:5px;
+  background:var(--card);border:1px solid transparent;cursor:pointer;}
+.ladder-step.locked{opacity:.5;cursor:default;}
+.ladder-step.current{border-color:var(--gold);background:#2f2a16;}
+.ladder-step.done{opacity:.8;}
+.ladder-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:12px;background:#1a1a2e;color:var(--dim);}
+.ladder-step.done .ladder-dot,.ladder-step.current .ladder-dot{background:var(--gold);color:#000;}
+.ladder-main{flex:1;min-width:0;}
+.ladder-main .ln{font-size:13px;font-weight:bold;}
+.ladder-main .lr{font-size:10px;color:var(--dim);margin-top:1px;}
+.ladder-sal{font-size:11px;color:var(--gold);white-space:nowrap;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top-bar"></div>
+  <div id="char-panel"></div>
+  <div id="main-area"></div>
+  <div id="bottom-bar"></div>
+</div>
+<div id="modal-overlay" onclick="G.closeModal(event)"><div id="modal" onclick="event.stopPropagation()"></div></div>
+<script>
+/* ============================= 配置 ============================= */
+const PHASES = [
+  {id:"youth",name:"青春期",from:18,to:22,emoji:"🎓",intro:"18岁,刚步入成年。学历和思维方式在这时奠基。",goal:"考上好大学 / 学到一门硬技能"},
+  {id:"hustle",name:"奋斗期",from:23,to:32,emoji:"💼",intro:"23岁,开始职业生涯。拼位置还是攒钱? 每一步都算数。",goal:"攒下 30 万 / 晋升管理层"},
+  {id:"family",name:"成家期",from:33,to:45,emoji:"🏡",intro:"33岁,该考虑家庭了。婚姻、孩子、房子...幸福也是负担。",goal:"组建家庭 或 买房"},
+  {id:"midlife",name:"中年期",from:46,to:58,emoji:"⚖️",intro:"46岁,人生过半。中年危机来了,但成熟也是财富。",goal:"净资产 100 万 / 家庭美满"},
+  {id:"harvest",name:"收获期",from:59,to:80,emoji:"🌴",intro:"59岁,即将退休。回顾一生,你留下了什么?",goal:"安度晚年 / 儿孙满堂"},
+];
+function phaseOf(age){return PHASES.find(p=>age>=p.from&&age<=p.to)||PHASES[PHASES.length-1];}
+
+/* 职业赛道: 每条赛道由低到高的职位数组,顺序即晋升顺序 */
+const CAREER_TRACKS = [
+  { id:"tech", name:"技术赛道", emoji:"💻", color:"var(--accent)",
+    ladder:[
+      {id:"intern",    name:"实习生",     salary:3000,  req:{edu:"high_school"} },
+      {id:"coder",     name:"程序员",     salary:15000, req:{edu:"college", skill_code:3} },
+      {id:"senior",    name:"高级工程师",  salary:28000, req:{edu:"college", skill_code:6, exp:3} },
+      {id:"architect", name:"架构师",     salary:45000, req:{edu:"master", skill_code:9, exp:8} },
+      {id:"cto",       name:"技术总监CTO", salary:90000, req:{edu:"master", skill_code:12, skill_social:5, exp:14} },
+    ]},
+  { id:"design", name:"设计赛道", emoji:"🎨", color:"var(--purple)",
+    ladder:[
+      {id:"intern",      name:"实习生",     salary:3000,  req:{edu:"high_school"} },
+      {id:"designer",    name:"设计师",     salary:12000, req:{edu:"college", skill_art:3} },
+      {id:"senior_des",  name:"资深设计师",  salary:25000, req:{edu:"college", skill_art:6, exp:3} },
+      {id:"design_lead", name:"设计总监",   salary:48000, req:{edu:"master", skill_art:10, skill_social:4, exp:10} },
+    ]},
+  { id:"finance", name:"金融赛道", emoji:"📊", color:"var(--gold)",
+    ladder:[
+      {id:"clerk",    name:"文员",     salary:5000,  req:{edu:"high_school"} },
+      {id:"trader",   name:"交易员",   salary:18000, req:{edu:"college", skill_finance:4} },
+      {id:"fund_mgr", name:"基金经理", salary:40000, req:{edu:"college", skill_finance:7, exp:5} },
+      {id:"partner",  name:"合伙人",   salary:85000, req:{edu:"master", skill_finance:11, skill_social:6, exp:12} },
+    ]},
+  { id:"manage", name:"管理赛道", emoji:"💼", color:"var(--green)",
+    ladder:[
+      {id:"clerk",    name:"文员", salary:5000,   req:{edu:"high_school"} },
+      {id:"manager",  name:"经理", salary:25000,  req:{edu:"college", skill_social:4, exp:3} },
+      {id:"director", name:"总监", salary:45000,  req:{edu:"master", skill_social:7, exp:8} },
+      {id:"ceo",      name:"CEO", salary:100000, req:{edu:"master", skill_social:10, skill_finance:5, exp:15} },
+    ]},
+  { id:"startup", name:"创业赛道", emoji:"🚀", color:"var(--orange)",
+    ladder:[
+      {id:"startup", name:"创业者", salary:0, req:{skill_social:5, skill_code:3, money:100000} },
+    ]},
+];
+
+/* 由赛道自动展开合并出 CAREERS(含 none/retired),保证旧存档 s.career 可解析 */
+const CAREERS = (()=>{
+  const m={ none:{name:"无业",salary:0,req:{}}, retired:{name:"退休",salary:0,req:{}} };
+  CAREER_TRACKS.forEach(t=>t.ladder.forEach(j=>{ if(!m[j.id]) m[j.id]={name:j.name,salary:j.salary,req:j.req}; }));
+  return m;
+})();
+
+/* 定位某职业所属赛道与层级; none/retired/未知 id 返回 null */
+function trackOf(careerId){
+  if(!careerId||careerId==="none"||careerId==="retired")return null;
+  for(const t of CAREER_TRACKS){
+    const i=t.ladder.findIndex(j=>j.id===careerId);
+    if(i>=0)return {track:t,levelIndex:i,job:t.ladder[i]};
+  }
+  return null;
+}
+const EDUCATIONS = {high_school:{name:"高中",years:0,cost:0},college:{name:"本科",years:4,cost:30000},master:{name:"硕士",years:2,cost:50000}};
+const SKILL_NAMES = {skill_code:"编程",skill_art:"设计",skill_social:"社交",skill_finance:"理财",skill_fitness:"体力"};
+const NAMES_M=["张伟","李明","王磊","刘洋","陈杰","赵鑫","周强","吴昊","孙涛","马超","林凡","徐飞","唐磊","高远"];
+const NAMES_F=["小红","小芳","小敏","小丽","小婷","小琳","小雪","小云","小燕","小倩","晓雯","静宜","雨萱","若楠"];
+const PERSONALITIES=["温柔","活泼","文艺","事业型","顾家型","冷酷","幽默","神秘"];
+function randomName(){return(Math.random()>.5?NAMES_M:NAMES_F)[Math.floor(Math.random()*NAMES_M.length)];}
+function randomPersonality(){return PERSONALITIES[Math.floor(Math.random()*PERSONALITIES.length)];}
+
+/* 天赋系统 */
+const TALENTS = [
+  {id:"rich_kid",name:"🏦 富二代",desc:"起步资金 80000,但心态骄纵 (心情衰减+2)",apply:s=>{s.money=80000;},passive:s=>{s.mood-=2;}},
+  {id:"genius",name:"🧠 天才学霸",desc:"起始编程+2/理财+1,但社交-1",apply:s=>{s.skills.skill_code+=2;s.skills.skill_finance++;s.skills.skill_social=0;}},
+  {id:"athlete",name:"🏃 运动天赋",desc:"体力+3,每年额外+5 健康,但初始钱少",apply:s=>{s.skills.skill_fitness+=3;s.money=2000;}},
+  {id:"social_butterfly",name:"🦋 社交达人",desc:"社交+3,恋爱亲密度增幅翻倍,但学习 -1",apply:s=>{s.skills.skill_social+=3;}},
+  {id:"lucky",name:"🍀 欧皇",desc:"好事件出现概率 +50%",apply:()=>{}},
+  {id:"hard_mode",name:"☠️ 困难模式",desc:"初始钱 0,健康 60,但通关评价 x2",apply:s=>{s.money=0;s.health=60;}},
+];
+
+/* 成就系统 */
+const ACHIEVEMENTS = [
+  {id:"millionaire",name:"百万富翁",desc:"净资产达到 100 万",check:s=>(s.money+s.stocks+s.assets)>=1000000},
+  {id:"married",name:"执子之手",desc:"结婚",check:s=>s.relations.some(r=>r.type==="spouse")},
+  {id:"parent",name:"为人父母",desc:"有孩子",check:s=>s.flags.hasChild},
+  {id:"ceo_life",name:"走上巅峰",desc:"成为 CEO",check:s=>s.career==="ceo"},
+  {id:"fitness10",name:"健身狂魔",desc:"体力达到 10",check:s=>(s.skills.skill_fitness||0)>=10},
+  {id:"startup_ok",name:"创业成功",desc:"创业公司估值达 100 万",check:s=>s.flags.startupVal>=1000000},
+  {id:"world_tour",name:"环游世界",desc:"花 10 万环游世界",check:s=>s.flags.worldTour},
+  {id:"retire_early",name:"提前退休",desc:"50 岁前退休",check:s=>s.flags.retired&&s.age<=50},
+];
+
+/* ============================= 事件池 (100+) ============================= */
+// once:true 表示一次性事件,触发后不再出现
+const EVENTS = [
+/* -------- 青春期 youth -------- */
+{phase:"youth",text:"期末考试临近,室友叫你通宵打游戏",type:"story",weight:3,
+  choices:[
+    {text:"📚 拒绝复习",effects:s=>{s.skills.skill_code++;s.mood-=5;}},
+    {text:"🎮 玩! 年轻不疯狂枉少年",effects:s=>{s.mood+=15;s.skills.skill_social++;}},
+  ]},
+{phase:"youth",text:"社团招新,加入哪个?",type:"story",weight:3,once:true,
+  choices:[
+    {text:"💻 编程社",effects:s=>{s.skills.skill_code+=2;}},
+    {text:"🎨 美术社",effects:s=>{s.skills.skill_art+=2;}},
+    {text:"🎤 辩论社",effects:s=>{s.skills.skill_social+=2;}},
+    {text:"🏀 篮球社",effects:s=>{s.skills.skill_fitness+=2;s.mood+=10;}},
+  ]},
+{phase:"youth",text:"暑假到了,怎么过?",type:"story",weight:3,
+  choices:[
+    {text:"💼 打工 (+5000)",effects:s=>{s.money+=5000;s.mood-=5;}},
+    {text:"✈️ 旅行 (-2000)",effects:s=>{s.mood+=20;s.skills.skill_social++;s.money-=2000;}},
+    {text:"📖 报班学习",effects:s=>{s.skills.skill_finance++;s.skills.skill_code++;}},
+  ]},
+{phase:"youth",text:"有出国交换的机会,但要花 20000",type:"story",weight:2,cond:s=>s.money>=20000,once:true,
+  choices:[
+    {text:"🌍 去! 开阔眼界",effects:s=>{s.money-=20000;s.skills.skill_social+=2;s.skills.skill_finance++;s.mood+=15;}},
+    {text:"🏠 留在国内",effects:()=>{}},
+  ]},
+{phase:"youth",text:"你在食堂捡到 500 元",type:"good",weight:1,effects:s=>{s.money+=500;}},
+{phase:"youth",text:"熬夜太多,身体亮红灯",type:"bad",weight:2,effects:s=>{s.health-=10;}},
+{phase:"youth",text:"参加编程比赛拿了奖! 编程 +2, 奖金 3000",type:"good",weight:1,cond:s=>s.skills.skill_code>=2,effects:s=>{s.skills.skill_code+=2;s.money+=3000;}},
+{phase:"youth",text:"表白暗恋对象",type:"story",weight:2,cond:s=>!s.partner&&s.age<=22,
+  choices:[
+    {text:"❤️ 鼓起勇气",effects:s=>{if(Math.random()*10<s.skills.skill_social+3){s.partner={name:randomName(),personality:randomPersonality(),closeness:55,emoji:"😊"};msg("成功了! 有了初恋 💕","good");}else{s.mood-=10;msg("被拒绝了,心情低落","bad");}}},
+    {text:"😔 默默藏在心里",effects:s=>{s.mood-=3;}},
+  ]},
+{phase:"youth",text:"迷茫期,不知道未来干什么",type:"story",weight:2,
+  choices:[
+    {text:"📚 请教前辈",effects:s=>{s.skills.skill_social++;s.mood+=5;}},
+    {text:"💤 摆烂几天",effects:s=>{s.mood+=8;s.health-=5;}},
+  ]},
+{phase:"youth",text:"骑车摔了一跤,擦伤",type:"bad",weight:1,effects:s=>{s.health-=5;s.money-=200;}},
+{phase:"youth",text:"帮学弟学妹辅导功课,收获感谢",type:"good",weight:1,cond:s=>s.skills.skill_code>=2||s.skills.skill_finance>=2,effects:s=>{s.mood+=8;s.skills.skill_social++;s.money+=1000;}},
+{phase:"youth",text:"发现一位神秘导师,愿意教你",type:"story",weight:1,once:true,
+  choices:[
+    {text:"💻 编程大牛",effects:s=>{s.skills.skill_code+=3;}},
+    {text:"💰 投资高手",effects:s=>{s.skills.skill_finance+=3;}},
+    {text:"🎨 艺术家",effects:s=>{s.skills.skill_art+=3;}},
+  ]},
+
+/* -------- 奋斗期 hustle -------- */
+{phase:"hustle",text:"隔壁公司挖你,薪水 +30% 但要 996",type:"story",weight:3,career:true,cond:s=>s.career!=="none"&&s.career!=="startup",
+  choices:[
+    {text:"💰 跳槽!",effects:s=>{s.salary=Math.round(s.salary*1.3);s.health-=10;s.mood-=5;}},
+    {text:"😌 不跳,健康要紧",effects:s=>{s.mood+=5;}},
+  ]},
+{phase:"hustle",text:"领导画饼:好好干明年升职",type:"story",weight:2,career:true,cond:s=>s.career!=="none"&&s.career!=="startup",
+  choices:[
+    {text:"🔥 拼了! 加班",effects:s=>{s.exp+=2;s.health-=12;s.skills.skill_social++;}},
+    {text:"🛌 摸鱼躺平",effects:s=>{s.mood+=8;s.exp-=1;}},
+  ]},
+{phase:"hustle",text:"同事甩锅,项目出事",type:"bad",weight:2,cond:s=>s.career!=="none",effects:s=>{s.mood-=15;s.skills.skill_social++;}},
+{phase:"hustle",text:"抓住行业风口! 奖金暴涨",type:"good",weight:2,cond:s=>s.career!=="none"&&s.career!=="startup",effects:s=>{s.money+=s.salary*3;msg(`拿到 ${fmtMoney(s.salary*3)} 奖金`,"good");}},
+{phase:"hustle",text:"朋友拉你合伙搞副业,投 30000",type:"story",weight:2,cond:s=>s.money>=30000,
+  choices:[
+    {text:"🚀 干! (60%赚 40%亏)",effects:s=>{s.money-=30000;if(Math.random()<.6){const g=Math.round(30000*(1.5+s.skills.skill_finance*.2));s.money+=30000+g;msg(`副业赚了 ${fmtMoney(g)}`,"good");}else{msg("副业亏光了 30000","bad");}}},
+    {text:"🙅 不参与",effects:()=>{}},
+  ]},
+{phase:"hustle",text:"看到 996 猝死新闻,陷入思考",type:"event",weight:1,effects:s=>{s.mood-=5;}},
+{phase:"hustle",text:"父母催你别太拼,注意身体",type:"good",weight:2,effects:s=>{s.health+=5;s.mood+=5;s.relations.filter(r=>r.type==="family").forEach(r=>r.closeness=clamp(r.closeness+3,0,100));}},
+{phase:"hustle",text:"股市大牛市!",type:"good",weight:1,cond:s=>s.stocks>0,effects:s=>{const g=Math.round(s.stocks*(0.3+s.skills.skill_finance*.05));s.stocks+=g;msg(`基金上涨 ${fmtMoney(g)}`,"good");}},
+{phase:"hustle",text:"买房还是租房?",type:"story",weight:2,cond:s=>s.money>=200000&&!s.flags.hasHouse,once:true,
+  choices:[
+    {text:"🏠 首付买房 (-150000)",effects:s=>{s.money-=150000;s.assets+=300000;s.monthlyExpense+=3000;s.flags.hasHouse=true;msg("买了房! 每月月供 +3000","story");}},
+    {text:"🏘 继续租房",effects:s=>{s.mood-=5;}},
+  ]},
+{phase:"hustle",text:"要考研/考证吗?",type:"story",weight:2,career:true,cond:s=>s.edu==="college",once:true,
+  choices:[
+    {text:"📚 备考 (半年时间,-3000)",effects:s=>{s.money-=3000;s.skills.skill_code++;s.skills.skill_finance++;s.mood-=8;msg("辛苦备考","event");}},
+    {text:"😌 算了,专心工作",effects:()=>{}},
+  ]},
+{phase:"hustle",text:"重要客户请客,该不该应酬?",type:"story",weight:2,career:true,cond:s=>s.career!=="none",
+  choices:[
+    {text:"🍻 去! 混个脸熟",effects:s=>{s.skills.skill_social++;s.health-=5;s.exp++;}},
+    {text:"🚫 拒绝喝酒",effects:s=>{s.mood+=3;}},
+  ]},
+{phase:"hustle",text:"帮陌生老人过马路,被感谢",type:"good",weight:1,effects:s=>{s.mood+=5;}},
+{phase:"hustle",text:"通勤路上遇到堵车,心情烦躁",type:"event",weight:1,effects:s=>{s.mood-=3;}},
+{phase:"hustle",text:"接到诈骗电话",type:"story",weight:1,
+  choices:[
+    {text:"🧐 冷静识破",effects:s=>{s.skills.skill_finance++;s.mood+=3;}},
+    {text:"😱 差点上当,损失 5000",effects:s=>{s.money-=5000;s.mood-=8;}},
+  ]},
+
+/* -------- 成家期 family -------- */
+{phase:"family",text:"另一半想要孩子",type:"story",weight:3,cond:s=>s.relations.some(r=>r.type==="spouse")&&!s.flags.hasChild,once:true,
+  choices:[
+    {text:"👶 要! 迎接新生命",effects:s=>{s.relations.push({name:randomName(),type:"child",closeness:100,emoji:"👶",age:0});s.flags.hasChild=true;s.monthlyExpense+=4000;s.mood+=20;}},
+    {text:"⏳ 再等等",effects:s=>{const sp=s.relations.find(r=>r.type==="spouse");if(sp)sp.closeness-=10;}},
+  ]},
+{phase:"family",text:"孩子要上学,学区房 or 快乐教育?",type:"story",weight:2,cond:s=>s.flags.hasChild&&!s.flags.goodSchool,once:true,
+  choices:[
+    {text:"🏫 咬牙买学区房 (-300000)",effects:s=>{s.money-=300000;s.assets+=300000;s.flags.goodSchool=true;msg("孩子进了名校","good");}},
+    {text:"📚 普通学校,快乐教育",effects:s=>{s.mood+=5;const c=s.relations.find(r=>r.type==="child");if(c)c.closeness=clamp(c.closeness+5,0,100);}},
+  ]},
+{phase:"family",text:"孩子生病住院,-20000",type:"bad",weight:2,cond:s=>s.flags.hasChild,effects:s=>{s.money-=20000;s.mood-=10;}},
+{phase:"family",text:"和伴侣因家务分工吵架",type:"bad",weight:2,cond:s=>s.relations.some(r=>r.type==="spouse"),
+  effects:s=>{const sp=s.relations.find(r=>r.type==="spouse");if(sp)sp.closeness-=8;s.mood-=8;}},
+{phase:"family",text:"一家人温馨出游",type:"good",weight:2,cond:s=>s.relations.length>=3,effects:s=>{s.mood+=15;s.relations.forEach(r=>r.closeness=clamp(r.closeness+5,0,100));s.money-=5000;}},
+{phase:"family",text:"晋升机会来了,但要常年出差",type:"story",weight:2,career:true,cond:s=>s.career!=="none"&&s.career!=="startup"&&s.relations.length>=3,
+  choices:[
+    {text:"📈 抓住晋升",effects:s=>{s.salary=Math.round(s.salary*1.4);s.relations.forEach(r=>r.closeness-=10);msg("晋升成功,但陪家人的时间少了","event");}},
+    {text:"👨‍👩‍👧 家庭优先",effects:s=>{s.mood+=10;s.relations.forEach(r=>r.closeness=clamp(r.closeness+8,0,100));}},
+  ]},
+{phase:"family",text:"房价大涨,你的房子升值",type:"good",weight:1,cond:s=>s.flags.hasHouse,effects:s=>{const g=Math.round(s.assets*0.2);s.assets+=g;msg(`房产升值 ${fmtMoney(g)}`,"good");}},
+{phase:"family",text:"孩子叛逆期,和你冷战",type:"story",weight:2,cond:s=>s.flags.hasChild,
+  choices:[
+    {text:"💬 耐心沟通",effects:s=>{const c=s.relations.find(r=>r.type==="child");if(c)c.closeness=clamp(c.closeness+15,0,100);s.skills.skill_social++;}},
+    {text:"😡 严厉批评",effects:s=>{const c=s.relations.find(r=>r.type==="child");if(c)c.closeness-=20;s.mood-=8;}},
+    {text:"😞 由他去吧",effects:s=>{s.mood-=5;}},
+  ]},
+{phase:"family",text:"婆媳/岳父矛盾找到你",type:"story",weight:2,cond:s=>s.relations.some(r=>r.type==="spouse"),
+  choices:[
+    {text:"👨 站家人这边",effects:s=>{s.relations.filter(r=>r.type==="family").forEach(r=>r.closeness+=5);const sp=s.relations.find(r=>r.type==="spouse");if(sp)sp.closeness-=15;}},
+    {text:"💕 站配偶这边",effects:s=>{const sp=s.relations.find(r=>r.type==="spouse");if(sp)sp.closeness+=10;s.relations.filter(r=>r.type==="family").forEach(r=>r.closeness-=10);}},
+    {text:"🕊 各打五十大板",effects:s=>{s.skills.skill_social++;s.mood-=5;}},
+  ]},
+{phase:"family",text:"考虑要二胎吗?",type:"story",weight:1,cond:s=>s.flags.hasChild&&!s.flags.hasSecondChild&&s.money>=50000,once:true,
+  choices:[
+    {text:"👶 再要一个",effects:s=>{s.relations.push({name:randomName(),type:"child",closeness:100,emoji:"👶"});s.flags.hasSecondChild=true;s.monthlyExpense+=4000;s.mood+=15;}},
+    {text:"🚫 一个就够了",effects:()=>{}},
+  ]},
+
+/* -------- 中年期 midlife -------- */
+{phase:"midlife",text:"公司来了批 95 后,感到危机",type:"story",weight:3,career:true,cond:s=>s.career!=="none"&&s.career!=="ceo"&&s.career!=="startup",
+  choices:[
+    {text:"📚 学新技能保位置",effects:s=>{s.skills.skill_code++;s.mood-=5;}},
+    {text:"😔 认命等退休",effects:s=>{s.mood-=10;}},
+    {text:"💡 转型做管理/顾问",effects:s=>{s.skills.skill_social+=2;s.salary=Math.round(s.salary*1.1);}},
+  ]},
+{phase:"midlife",text:"体检查出健康问题,需要调理",type:"bad",weight:3,effects:s=>{const cost=s.skills.skill_fitness>=5?5000:20000;s.health-=(s.skills.skill_fitness>=5?8:18);s.money-=cost;msg(`体检异常,治疗花费 ${fmtMoney(cost)}${s.skills.skill_fitness>=5?"(体力好,恢复快)":""}`,"bad");}},
+{phase:"midlife",text:"父母年迈需要照顾",type:"story",weight:2,cond:s=>s.relations.some(r=>r.type==="family"&&r.closeness>0),
+  choices:[
+    {text:"💰 请护工 (-30000)",effects:s=>{s.money-=30000;}},
+    {text:"👨 亲自照顾",effects:s=>{s.money-=s.salary*2;s.mood+=10;s.relations.filter(r=>r.type==="family").forEach(r=>r.closeness=clamp(r.closeness+15,0,100));}},
+  ]},
+{phase:"midlife",text:"老同学聚会,有人混得好有人差",type:"event",weight:2,effects:s=>{s.mood+=(Math.random()>.5?8:-8);}},
+{phase:"midlife",text:"稳健的副业投资机会",type:"story",weight:2,cond:s=>s.money>=50000,
+  choices:[
+    {text:"💼 投 50000 (稳健)",effects:s=>{s.money-=50000;s.stocks+=Math.round(55000+s.skills.skill_finance*1000);}},
+    {text:"🏦 存银行",effects:()=>{}},
+  ]},
+{phase:"midlife",text:"孩子考上大学了!",type:"good",weight:2,cond:s=>s.flags.hasChild,once:true,effects:s=>{s.mood+=25;const c=s.relations.find(r=>r.type==="child");if(c)c.closeness=clamp(c.closeness+10,0,100);}},
+{phase:"midlife",text:"中年发福,该运动了",type:"event",weight:2,cond:s=>s.skills.skill_fitness<3,effects:s=>{s.health-=6;}},
+{phase:"midlife",text:"意外事故! 车祸受伤",type:"bad",weight:1,effects:s=>{const dmg=Math.max(5,20-s.skills.skill_fitness*2);s.health-=dmg;s.money-=Math.round(15000-s.skills.skill_fitness*500);msg(`车祸受伤,健康 -${dmg}${s.skills.skill_fitness>=5?"(体力好,伤势较轻)":""}`,"bad");}},
+{phase:"midlife",text:"父亲离世 💔",type:"bad",weight:2,cond:s=>s.age>=52&&s.relations.some(r=>r.type==="family"&&r.name==="爸爸"),once:true,
+  effects:s=>{s.relations=s.relations.filter(r=>r.name!=="爸爸");s.mood-=25;s.money+=30000;msg("父亲永远地离开了你。继承遗产 30000,悼念良久。","danger");}},
+{phase:"midlife",text:"公司裁员,你在名单上",type:"story",weight:2,career:true,cond:s=>s.career!=="none"&&s.career!=="ceo"&&s.career!=="startup",
+  choices:[
+    {text:"⚖ 争取赔偿 (n+1)",effects:s=>{s.money+=s.salary*Math.max(1,Math.floor(s.exp/2));s.career="none";s.salary=0;msg("拿到赔偿离职","event");}},
+    {text:"💪 主动跳槽",effects:s=>{s.mood-=8;s.skills.skill_social++;}},
+  ]},
+{phase:"midlife",text:"发现小时候的老朋友还联系,重聚",type:"good",weight:1,effects:s=>{s.mood+=10;s.skills.skill_social++;}},
+{phase:"midlife",text:"想学一门新爱好",type:"story",weight:1,
+  choices:[
+    {text:"🎸 音乐",effects:s=>{s.mood+=15;s.money-=3000;}},
+    {text:"🧘 冥想瑜伽",effects:s=>{s.mood+=10;s.health+=8;}},
+    {text:"📷 摄影",effects:s=>{s.skills.skill_art++;s.money-=5000;}},
+  ]},
+{phase:"midlife",text:"孩子叛逆离家出走",type:"bad",weight:1,cond:s=>s.flags.hasChild,
+  effects:s=>{const c=s.relations.find(r=>r.type==="child");if(c){c.closeness-=25;} s.mood-=20;msg("孩子离家几日才归,你彻夜难眠","danger");}},
+{phase:"midlife",text:"股市大跌!",type:"bad",weight:2,cond:s=>s.stocks>0,effects:s=>{const l=Math.round(s.stocks*Math.max(.1,.35-s.skills.skill_finance*.03));s.stocks-=l;msg(`基金亏损 ${fmtMoney(l)}${s.skills.skill_finance>=5?"(你及时止损)":""}`,"bad");}},
+
+/* -------- 收获期 harvest -------- */
+{phase:"harvest",text:"孩子要结婚了,出多少彩礼/嫁妆?",type:"story",weight:3,cond:s=>s.flags.hasChild&&!s.flags.childMarried,once:true,
+  choices:[
+    {text:"💝 大方给 (-100000)",effects:s=>{s.money-=100000;s.mood+=20;const c=s.relations.find(r=>r.type==="child");if(c)c.closeness=100;s.flags.childMarried=true;}},
+    {text:"🎁 量力而行 (-20000)",effects:s=>{s.money-=20000;s.mood+=8;s.flags.childMarried=true;}},
+  ]},
+{phase:"harvest",text:"含饴弄孙,天伦之乐",type:"good",weight:2,cond:s=>s.flags.childMarried,effects:s=>{s.mood+=20;s.health+=3;}},
+{phase:"harvest",text:"退休金到账,生活安稳",type:"good",weight:2,cond:s=>s.flags.retired,effects:s=>{s.money+=8000;s.mood+=5;}},
+{phase:"harvest",text:"老友离世,感慨人生",type:"bad",weight:2,effects:s=>{s.mood-=15;}},
+{phase:"harvest",text:"整理回忆录,回顾精彩一生",type:"good",weight:2,effects:s=>{s.mood+=10;}},
+{phase:"harvest",text:"环游世界还是留遗产给子女?",type:"story",weight:2,cond:s=>s.money>=100000&&!s.flags.worldTour,once:true,
+  choices:[
+    {text:"🌏 环游世界",effects:s=>{s.money-=100000;s.mood+=35;s.flags.worldTour=true;}},
+    {text:"👨‍👩‍👧 留给子女",effects:s=>{s.mood+=12;const c=s.relations.find(r=>r.type==="child");if(c)c.closeness=100;}},
+  ]},
+{phase:"harvest",text:"身体每况愈下",type:"bad",weight:2,cond:s=>s.age>=70,effects:s=>{const dmg=Math.max(3,10-s.skills.skill_fitness);s.health-=dmg;}},
+{phase:"harvest",text:"母亲离世 💔",type:"bad",weight:2,cond:s=>s.age>=65&&s.relations.some(r=>r.type==="family"&&r.name==="妈妈"),once:true,
+  effects:s=>{s.relations=s.relations.filter(r=>r.name!=="妈妈");s.mood-=30;s.money+=30000;msg("母亲永远地离开了你。继承遗产 30000。","danger");}},
+{phase:"harvest",text:"孙辈来家做客",type:"good",weight:2,cond:s=>s.flags.childMarried,effects:s=>{s.mood+=15;s.money-=2000;}},
+{phase:"harvest",text:"社区活动邀请你去分享人生经验",type:"good",weight:1,effects:s=>{s.mood+=10;s.skills.skill_social++;}},
+{phase:"harvest",text:"回顾一生,写自传出书",type:"story",weight:1,cond:s=>s.age>=70,
+  choices:[
+    {text:"📖 写! 记录一生",effects:s=>{s.money+=Math.round(20000+s.skills.skill_social*2000);s.mood+=20;msg("自传出版,收获稿费","good");}},
+    {text:"🌸 顺其自然",effects:s=>{s.mood+=5;}},
+  ]},
+
+/* -------- 通用 any -------- */
+{phase:"any",text:"路上捡到钱包,物归原主获得好评",type:"good",weight:1,effects:s=>{s.mood+=5;s.skills.skill_social++;}},
+{phase:"any",text:"感冒发烧,休息几天",type:"event",weight:2,effects:s=>{const dmg=Math.max(2,8-s.skills.skill_fitness);s.health-=dmg;}},
+{phase:"any",text:"网购剁手,-2000",type:"event",weight:2,effects:s=>{s.money-=2000;s.mood+=5;}},
+{phase:"any",text:"基金波动,略有亏损",type:"bad",weight:1,cond:s=>s.stocks>0,effects:s=>{const l=Math.round(s.stocks*Math.max(.02,.12-s.skills.skill_finance*.015));s.stocks-=l;}},
+{phase:"any",text:"意外中了小奖,-5000",type:"good",weight:1,effects:s=>{s.money+=5000;s.mood+=5;}},
+{phase:"any",text:"邻居纠纷,-500 心情不悦",type:"bad",weight:1,effects:s=>{s.money-=500;s.mood-=5;}},
+{phase:"any",text:"看了场好电影,治愈心灵",type:"good",weight:1,effects:s=>{s.mood+=8;s.money-=100;}},
+];
+
+/* ============================= 状态 ============================= */
+function newState(){
+  return {
+    age:18, ap:10, apMax:10,
+    money:5000, stocks:0, assets:0,
+    monthlyExpense:3000, salary:0,
+    edu:"high_school", career:"none", exp:0,
+    health:80, mood:70,
+    skills:{skill_code:0,skill_art:0,skill_social:1,skill_finance:0,skill_fitness:2},
+    relations:[
+      {name:"妈妈",type:"family",closeness:90,emoji:"👩",age:45},
+      {name:"爸爸",type:"family",closeness:85,emoji:"👨",age:47},
+    ],
+    partner:null,
+    phase:"youth",
+    talent:null,
+    flags:{},
+    achievements:[],
+    history:[],       // 重大事件历史(用于人生回顾)
+    seenOnce:{},      // 一次性事件已触发标记
+    pendingEvent:null,
+    messages:[],
+    startup:null,     // {name, valuation, level, foundedAt}
+    ended:false, endReason:null,
+  };
+}
+
+const SAVE_KEY = "lifesim_pro_v4";
+function save(){try{S.savedAt=Date.now();localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||"null");if(d&&d.age!==undefined)return d;}catch(e){}return null;}
+let S = load() || newState();
+
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const fmtMoney=n=>{const sign=n<0?"-":"";n=Math.abs(n);if(n>=100000000)return sign+(n/100000000).toFixed(2)+"亿";if(n>=10000)return sign+(n/10000).toFixed(1)+"万";return sign+Math.round(n).toLocaleString();};
+function msg(text,type){S.messages.unshift({text,type:type||"info",age:S.age});if(S.messages.length>30)S.messages.length=30;if(type==="story"||type==="danger"||type==="phase-intro")S.history.unshift({text,type:type||"info",age:S.age});}
+function hasSpouseOrLover(s){return s.relations.some(r=>r.type==="spouse"||r.type==="lover");}
+
+/* ============================= 行动 (按阶段扩展) ============================= */
+const ACTIONS = [
+  // ---- 通用基础行动 ----
+  {id:"study_code",label:"学编程",emoji:"💻",ap:2,desc:"编程 +1",
+    perform:s=>{s.skills.skill_code++;s.mood-=2;msg("学习编程 (+1)","good");}},
+  {id:"study_art",label:"学设计",emoji:"🎨",ap:2,desc:"设计 +1",
+    perform:s=>{s.skills.skill_art++;s.mood-=2;msg("学习设计 (+1)","good");}},
+  {id:"study_finance",label:"学理财",emoji:"📊",ap:2,desc:"理财 +1 (影响基金收益率)",
+    perform:s=>{s.skills.skill_finance++;msg("学习理财 (+1)","good");}},
+  {id:"network",label:"社交",emoji:"🍻",ap:2,cost:1000,desc:"社交 +1, 心情 +5",
+    perform:s=>{s.money-=1000;s.skills.skill_social++;s.mood+=5;msg("参加聚会","good");}},
+  {id:"gym",label:"健身",emoji:"🏋️",ap:2,desc:"体力+1, 健康+10, 延缓衰老",
+    perform:s=>{s.skills.skill_fitness++;s.health=clamp(s.health+10,0,100);msg("锻炼身体 (体力 +1)","good");}},
+  {id:"rest",label:"休息",emoji:"☕",ap:1,desc:"心情 +10, 健康 +5",
+    perform:s=>{s.mood=clamp(s.mood+10,0,100);s.health=clamp(s.health+5,0,100);msg("好好休息","good");}},
+
+  // ---- 恋爱 ----
+  {id:"date_new",label:"相亲/认识新人",emoji:"💐",ap:2,cost:500,desc:"认识一位新对象",
+    show:s=>!s.partner&&!hasSpouseOrLover(s),
+    perform:s=>{s.money-=500;s.partner={name:randomName(),personality:randomPersonality(),closeness:30,emoji:"😊"};msg(`认识了 ${s.partner.name} (${s.partner.personality}型)`,"story");}},
+  {id:"date_go",label:"约会",emoji:"❤️",ap:2,cost:500,desc:"亲密度 +15 (社交加成)",
+    show:s=>s.partner||s.relations.some(r=>r.type==="lover"||r.type==="spouse"),
+    perform:s=>{s.money-=500;const t=s.partner||s.relations.find(r=>r.type==="lover"||r.type==="spouse");const bonus=(S.talent==="social_butterfly"?2:1);t.closeness=clamp(t.closeness+15*bonus,0,100);s.mood+=5;msg(`和 ${t.name} 约会 ❤️ 亲密度 ${t.closeness}`,"good");}},
+  {id:"confess",label:"表白",emoji:"💗",ap:1,desc:"确定恋爱关系 (亲密≥50)",
+    show:s=>s.partner&&s.partner.closeness>=50,
+    perform:s=>{const p=s.partner;const ok=Math.random()*100<p.closeness+s.skills.skill_social*5;
+      if(ok){s.relations.push({name:p.name,type:"lover",closeness:p.closeness,emoji:"💕",personality:p.personality});s.partner=null;msg(`表白成功! ${p.name} 成为你的恋人 💕`,"story");}
+      else{p.closeness-=15;msg(`被婉拒了... 亲密度 -15`,"bad");}}},
+  {id:"propose",label:"求婚",emoji:"💍",ap:2,cost:80000,desc:"步入婚姻 (亲密≥75)",
+    show:s=>s.relations.some(r=>r.type==="lover"&&r.closeness>=75),
+    perform:s=>{s.money-=80000;const r=s.relations.find(r=>r.type==="lover");r.type="spouse";r.emoji="💍";s.monthlyExpense+=2000;s.mood+=25;msg(`💍 和 ${r.name} 结婚了!`,"story");}},
+
+  // ---- 家庭 ----
+  {id:"visit_family",label:"陪家人",emoji:"🏡",ap:1,desc:"亲密度↑ 心情↑ (联动心情)",
+    perform:s=>{const fam=s.relations.filter(r=>r.type==="family"||r.type==="child"||r.type==="spouse");fam.forEach(r=>r.closeness=clamp(r.closeness+8,0,100));const warmth=Math.min(fam.length*3,12);s.mood=clamp(s.mood+warmth,0,100);msg(`陪伴家人 (心情 +${warmth})`,"good");}},
+
+  // ---- 投资 ----
+  {id:"invest",label:"投资基金",emoji:"📈",ap:1,cost:10000,desc:"投入1万 (理财技能影响收益率)",
+    perform:s=>{s.money-=10000;s.stocks+=10000;msg("买入 1 万基金","info");}},
+  {id:"sell_stock",label:"卖出基金",emoji:"💵",ap:1,desc:"全部变现",show:s=>s.stocks>0,
+    perform:s=>{s.money+=s.stocks;msg(`卖出基金 ${fmtMoney(s.stocks)}`,"good");s.stocks=0;}},
+
+  // ---- 阶段专属 ----
+  // 青春: 泡图书馆
+  {id:"library",label:"泡图书馆",emoji:"📚",ap:2,desc:"随机 +1 技能, 心情 +3",
+    show:s=>phaseOf(s.age).id==="youth",
+    perform:s=>{const keys=Object.keys(s.skills);const k=keys[Math.floor(Math.random()*keys.length)];s.skills[k]++;s.mood+=3;msg(`在图书馆看书 (${SKILL_NAMES[k]} +1)`,"good");}},
+  // 奋斗: 谈薪
+  {id:"negotiate",label:"和老板谈薪",emoji:"💬",ap:2,desc:"成功涨薪20% (社交≥3)",
+    show:s=>phaseOf(s.age).id==="hustle"&&s.career!=="none"&&s.career!=="startup",cond:s=>s.skills.skill_social>=3,
+    perform:s=>{if(Math.random()*10<s.skills.skill_social){s.salary=Math.round(s.salary*1.2);msg(`涨薪成功! 月薪 ${fmtMoney(s.salary)}`,"good");}else{s.mood-=5;msg("谈薪失败,气氛尴尬","bad");}}},
+  // 成家: 陪孩子
+  {id:"tutor_kid",label:"辅导孩子",emoji:"👨‍🏫",ap:2,desc:"孩子亲密度 +15",
+    show:s=>phaseOf(s.age).id==="family"&&s.flags.hasChild,
+    perform:s=>{const c=s.relations.find(r=>r.type==="child");if(c){c.closeness=clamp(c.closeness+15,0,100);s.mood+=5;msg(`辅导孩子学习 (亲密度 ${c.closeness})`,"good");}else msg("没有孩子","bad");}},
+  // 中年: 体检
+  {id:"checkup",label:"体检",emoji:"🩺",ap:1,cost:3000,desc:"提前发现问题, 健康 +8",
+    show:s=>phaseOf(s.age).id==="midlife"||phaseOf(s.age).id==="harvest",
+    perform:s=>{s.money-=3000;s.health=clamp(s.health+8,0,100);msg("体检一切正常,放心了","good");}},
+  // 中年: 进修 MBA
+  {id:"mba",label:"进修 MBA",emoji:"🎓",ap:3,cost:50000,desc:"社交+2, 经验+3",
+    show:s=>phaseOf(s.age).id==="midlife"&&s.edu==="master",cond:s=>s.money>=50000,
+    perform:s=>{s.money-=50000;s.skills.skill_social+=2;s.exp+=3;msg("MBA 进修完成 (社交+2, 经验+3)","good");}},
+  // 收获: 带孙旅行
+  {id:"trip_grand",label:"带孙辈旅行",emoji:"🏖️",ap:2,cost:10000,desc:"心情 +20, 全家亲密 +",
+    show:s=>phaseOf(s.age).id==="harvest"&&s.flags.childMarried,
+    perform:s=>{s.money-=10000;s.mood=clamp(s.mood+20,0,100);s.relations.forEach(r=>r.closeness=clamp(r.closeness+5,0,100));msg("和孙辈旅行,享受天伦之乐","good");}},
+  // 收获: 写回忆录
+  {id:"memoir",label:"写回忆录",emoji:"📝",ap:2,desc:"总结人生, 心情 +15",
+    show:s=>phaseOf(s.age).id==="harvest"&&!s.flags.memoirDone,
+    perform:s=>{s.flags.memoirDone=true;s.mood+=15;s.money+=10000;msg("回忆录出版,稿费 10000","good");}},
+
+  // ---- 创业 ----
+  {id:"do_startup",label:"经营公司",emoji:"🚀",ap:3,desc:"投入精力经营,公司估值可能涨跌",
+    show:s=>s.career==="startup"&&s.startup,
+    perform:s=>{
+      const su=s.startup;
+      const roll=Math.random()+(s.skills.skill_social+s.skills.skill_finance+s.skills.skill_code)*0.02;
+      if(roll>0.7){
+        const grow=Math.round(su.valuation*(0.2+rand(0,.3)));
+        su.valuation+=grow;su.level++;
+        msg(`🚀 公司估值涨到 ${fmtMoney(su.valuation)}!`,"good");
+        if(su.valuation>=1000000&&!s.flags.startupIPO){msg("公司达到百万估值! 可考虑融资上市","story");s.flags.startupIPO=true;}
+      }else if(roll>0.35){
+        msg("公司运营平稳,继续积累","event");su.valuation+=Math.round(su.valuation*0.03);
+      }else{
+        const loss=Math.round(su.valuation*rand(0.1,0.3));su.valuation-=loss;
+        msg(`💸 经营亏损 ${fmtMoney(loss)},估值下降`,"bad");
+        if(su.valuation<=0){s.startup=null;s.career="none";s.salary=0;s.flags.startupFailed=true;msg("⚠️ 公司倒闭了!","danger");}
+      }
+    }},
+  {id:"startup_dividend",label:"公司分红",emoji:"💸",ap:1,desc:"提取公司利润",
+    show:s=>s.career==="startup"&&s.startup&&s.startup.valuation>=200000,
+    perform:s=>{const d=Math.round(s.startup.valuation*0.1);s.money+=d;s.startup.valuation-=d;msg(`从公司提取分红 ${fmtMoney(d)}`,"good");}},
+  {id:"startup_sell",label:"卖掉公司",emoji:"🏷",ap:1,desc:"变现退出",
+    show:s=>s.career==="startup"&&s.startup&&s.startup.valuation>=100000,
+    perform:s=>{const v=s.startup.valuation;s.money+=Math.round(v*0.8);s.startup=null;s.career="none";s.salary=0;msg(`卖掉公司,套现 ${fmtMoney(Math.round(v*0.8))}`,"story");}},
+];
+
+/* ============================= 职业逻辑 ============================= */
+function meetsReq(s,req){
+  if(!req)return true;
+  if(req.edu){const o=["high_school","college","master"];if(o.indexOf(s.edu)<o.indexOf(req.edu))return false;}
+  for(const k in req){
+    if(k==="edu")continue;
+    if(k==="money"){if(s.money<req[k])return false;continue;}
+    if(k==="exp"){if(s.exp<req[k])return false;continue;}
+    if((s.skills[k]||0)<req[k])return false;
+  }
+  return true;
+}
+function availableCareers(s){
+  return Object.entries(CAREERS).filter(([id,c])=>id!=="none"&&id!=="retired"&&meetsReq(s,c.req)).map(([id,c])=>({id,...c}));
+}
+function applyJob(id){
+  const c=CAREERS[id];if(!c)return;
+  if(id!=="none"&&!meetsReq(S,c.req)){msg("条件不足,应聘失败","bad");G.render();return;}
+  if(id==="startup"){
+    S.money-=100000;
+    S.startup={name:randomName()+"科技",valuation:100000,level:1,foundedAt:S.age};
+    S.career="startup";S.salary=0;
+    msg(`🚀 创立了 ${S.startup.name}! 初始估值 10万。用"经营公司"行动来发展它`,"story");
+    G.render();return;
+  }
+  S.career=id;S.salary=c.salary;
+  msg(id==="none"?"你辞职了":`成为了 ${c.name} (月薪 ${fmtMoney(c.salary)})`,id==="none"?"info":"good");
+  G.render();
+}
+function reqDesc(req){
+  if(!req||!Object.keys(req).length)return "无门槛";
+  const p=[];if(req.edu)p.push(EDUCATIONS[req.edu]?.name);
+  for(const k in req){
+    if(k==="edu")continue;
+    if(k==="money"){p.push(`资金${fmtMoney(req[k])}`);continue;}
+    if(k==="exp"){p.push(`经验${req[k]}年`);continue;}
+    p.push(`${SKILL_NAMES[k]}≥${req[k]}`);
+  }
+  return "要求: "+p.join(", ");
+}
+function relTypeName(t){return{family:"家人",lover:"恋人",spouse:"配偶",child:"孩子",friend:"朋友"}[t]||t;}
+
+/* 晋升逻辑 */
+function nextPromotion(s){
+  const t=trackOf(s.career);
+  if(!t)return null;                                   // 无业/退休/创业(单级)等
+  if(t.levelIndex>=t.track.ladder.length-1)return null; // 已封顶
+  return {track:t.track, job:t.track.ladder[t.levelIndex+1]};
+}
+function canPromote(s){const n=nextPromotion(s);return !!n&&meetsReq(s,n.job.req);}
+function gapDesc(s,job){
+  if(!job||!job.req)return "";
+  const p=[];
+  const o=["high_school","college","master"];
+  if(job.req.edu&&o.indexOf(s.edu)<o.indexOf(job.req.edu))p.push(`需${EDUCATIONS[job.req.edu]?.name}`);
+  for(const k in job.req){
+    if(k==="edu")continue;
+    if(k==="money"){if(s.money<job.req[k])p.push(`资金差${fmtMoney(job.req[k]-s.money)}`);continue;}
+    if(k==="exp"){if(s.exp<job.req[k])p.push(`经验差${job.req[k]-s.exp}年`);continue;}
+    const cur=s.skills[k]||0;if(cur<job.req[k])p.push(`${SKILL_NAMES[k]}差${job.req[k]-cur}`);
+  }
+  return p.length?("还差: "+p.join(", ")):"条件已满足";
+}
+
+/* ============================= 主对象 G ============================= */
+const G = {
+  init(){
+    if(S.pendingEvent){
+      const f=EVENTS.find(e=>e.text===S.pendingEvent.text);
+      S.pendingEvent=f||null;
+    }
+    if(!S.talent){ this.showTalentPick(); return; }
+    if(!S.messages.length) this.startPhase(PHASES[0]);
+    this.render();
+  },
+
+  showTalentPick(){
+    let html=`<h3>✨ 选择你的天赋</h3><div style="color:var(--dim);font-size:12px;margin-bottom:12px;">天赋会影响你整个人生的走向,只能选一次。</div>`;
+    TALENTS.forEach(t=>{
+      html+=`<button class="talent-btn" onclick="G.pickTalent('${t.id}')"><div class="tn">${t.name}</div><div class="td">${t.desc}</div></button>`;
+    });
+    this.openModal(html);
+  },
+
+  pickTalent(id){
+    const t=TALENTS.find(x=>x.id===id); if(!t) return;
+    S.talent=id; t.apply(S);
+    msg(`天赋: ${t.name} — ${t.desc}`,"story");
+    this.startPhase(PHASES[0]);
+    this.closeModal(); this.render();
+  },
+
+  startPhase(ph){
+    S.phase=ph.id;
+    msg(`【${ph.emoji} ${ph.name}】${ph.intro}\n🎯 阶段目标: ${ph.goal}`,"phase-intro");
+  },
+
+  render(){
+    this.renderTop(); this.renderChar(); this.renderMain(); this.renderBottom();
+    save();
+  },
+
+  netWorth(){ return S.money+S.stocks+S.assets+(S.startup?S.startup.valuation:0); },
+
+  renderTop(){
+    const ph=phaseOf(S.age);
+    const prog=clamp((S.age-ph.from)/(ph.to-ph.from),0,1)*100;
+    document.getElementById("top-bar").innerHTML=`
+      <div class="top-row">
+        <div><span class="age-big">${S.age}岁</span><span class="phase-tag">${ph.emoji} ${ph.name}</span></div>
+        <div><span class="money-tag">💰 ${fmtMoney(this.netWorth())}</span></div>
+      </div>
+      <div class="top-row" style="margin-top:4px;">
+        <span style="color:var(--green);font-size:12px;">⚡ 行动点 ${S.ap}/${S.apMax}</span>
+        <span style="color:var(--dim);font-size:11px;">🎯 ${ph.goal}</span>
+      </div>
+      <div class="phase-bar"><div class="phase-bar-track"><div class="phase-bar-fill" style="width:${prog}%;"></div></div></div>`;
+  },
+
+  renderChar(){
+    const skillTags=Object.entries(S.skills).map(([k,v])=>`<span class="stat-tag ${v>=8?'hot':''}">${SKILL_NAMES[k]}<span class="val">${v}</span></span>`).join("");
+    const career=CAREERS[S.career]?.name||"-";
+    const edu=EDUCATIONS[S.edu]?.name||"-";
+    let loveStatus="单身";
+    const sp=S.relations.find(r=>r.type==="spouse");
+    const lover=S.relations.find(r=>r.type==="lover");
+    if(sp)loveStatus=`💍 已婚(${sp.name} 亲密${sp.closeness})`;
+    else if(lover)loveStatus=`💕 恋爱(${lover.name} ${lover.closeness})`;
+    else if(S.partner)loveStatus=`😊 暧昧(${S.partner.name} ${S.partner.closeness})`;
+    document.getElementById("char-panel").innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:14px;font-weight:bold;">🧑 ${career} <span style="color:var(--dim);font-size:11px;">· ${edu} · ${loveStatus}</span></div>
+          <div style="font-size:10px;color:var(--dim);margin-top:1px;">月薪 ${fmtMoney(S.salary)} · 月支出 ${fmtMoney(S.monthlyExpense)}${S.startup?' · 公司'+fmtMoney(S.startup.valuation):''}</div>
+        </div>
+        <button onclick="G.showCareer()" style="background:var(--card);border:none;color:var(--text);padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer;">💼 事业</button>
+      </div>
+      <div class="bar-group">
+        <div class="bar-item"><div class="bar-label"><span>❤️健康</span><span>${Math.round(S.health)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${S.health}%;background:${S.health<30?'var(--red)':'var(--green)'};"></div></div></div>
+        <div class="bar-item"><div class="bar-label"><span>😊心情</span><span>${Math.round(S.mood)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${S.mood}%;background:${S.mood<30?'var(--red)':'var(--orange)'};"></div></div></div>
+      </div>
+      <div class="stat-row">${skillTags}</div>`;
+  },
+
+  renderMain(){
+    const m=document.getElementById("main-area");
+    if(S.ended){m.innerHTML=this.renderEnd();return;}
+    let html="";
+    if(S.pendingEvent){html+=this.renderPending();m.innerHTML=html;m.scrollTop=0;return;}
+    html+=this.careerCardHtml();
+    // 按类型分组行动
+    const groups=[
+      {title:"📖 学习/提升",ids:["study_code","study_art","study_finance","gym","library","mba","checkup"]},
+      {title:"💕 恋爱/家庭",ids:["date_new","date_go","confess","propose","visit_family","tutor_kid","trip_grand"]},
+      {title:"💼 工作/理财",ids:["network","negotiate","invest","sell_stock","do_startup","startup_dividend","startup_sell"]},
+      {title:"🌸 生活",ids:["rest","memoir"]},
+    ];
+    groups.forEach(g=>{
+      const acts=ACTIONS.filter(a=>g.ids.includes(a.id)&&(!a.show||a.show(S)));
+      if(!acts.length)return;
+      html+=`<div class="sec-title"><span>${g.title}</span></div><div class="choices">`;
+      acts.forEach(a=>{
+        const noAp=S.ap<a.ap, noMoney=a.cost&&S.money<a.cost;
+        const noCond=a.cond&&!a.cond(S);
+        const disabled=noAp||noMoney||noCond;
+        let hint=a.desc;
+        if(noMoney)hint=`❌ 需要 ${fmtMoney(a.cost)} (当前 ${fmtMoney(S.money)})`;
+        else if(noAp)hint=`❌ 行动点不足 (需 ${a.ap})`;
+        else if(noCond)hint=`❌ 条件不满足`;
+        html+=`<button class="choice-btn ${disabled?'disabled':''}" onclick="G.doAction('${a.id}')">
+          <div><b>${a.emoji} ${a.label}</b> <span style="color:var(--dim);font-size:11px;">· ⚡${a.ap}${a.cost?' · 💰'+fmtMoney(a.cost):''}</span></div>
+          <div class="cost">${hint}</div></button>`;
+      });
+      html+=`</div>`;
+    });
+    // 后期一键安度余生
+    if(S.age>=60&&!S.flags.retired){
+      html+=`<div class="sec-title"><span>🌴 晚年</span></div><button class="choice-btn hi" onclick="G.autoRetire()"><b>🌴 一键安度余生</b><div class="cost">直接快进到 80 岁,自动应对事件</div></button>`;
+    } else if(S.flags.retired){
+      html+=`<button class="choice-btn hi" onclick="G.autoRetire()" style="margin-top:8px;"><b>⏩ 快进余生</b><div class="cost">自动度过剩余年份</div></button>`;
+    }
+    // 消息
+    if(S.messages.length){
+      html+=`<div class="sec-title"><span>📜 最近经历</span><span style="cursor:pointer;color:var(--accent);" onclick="G.showReview()">📖 人生回顾</span></div>`;
+      S.messages.slice(0,8).forEach(mm=>{
+        const cls=mm.type==="good"?"good":mm.type==="bad"?"bad":mm.type==="story"?"story":mm.type==="phase-intro"?"phase-intro":mm.type==="danger"?"danger":"event";
+        html+=`<div class="msg ${cls}"><span style="color:var(--dim);font-size:11px;">[${mm.age}岁]</span> ${mm.text.replace(/\n/g,'<br>')}</div>`;
+      });
+    }
+    m.innerHTML=html; m.scrollTop=0;
+  },
+
+  careerCardHtml(){
+    const t=trackOf(S.career);
+    const expTxt=`经验 ${S.exp} 年`;
+    let titleHtml, subHtml, body="";
+    if(S.career==="retired"){
+      titleHtml=`🌴 已退休`;
+      subHtml=`安享晚年 · ${expTxt}`;
+    }else if(S.career==="startup"){
+      titleHtml=`🚀 创业者<span class="track-tag" style="background:var(--orange);">创业赛道</span>`;
+      subHtml=`${S.startup?S.startup.name+' · 估值'+fmtMoney(S.startup.valuation):'经营自己的公司'} · ${expTxt}`;
+      body=`<div class="promote-box"><div class="promote-next">用下方「💼 工作/理财」中的<b>经营公司</b>行动做大估值</div></div>`;
+    }else if(!t){
+      titleHtml=`🧑 无业`;
+      subHtml=`还没有正式工作 · ${expTxt}`;
+      body=`<button class="seek-btn" onclick="G.showCareer()">🔍 去求职</button>`;
+    }else{
+      titleHtml=`${t.track.emoji} ${t.job.name}<span class="track-tag" style="background:${t.track.color};">${t.track.name}</span>`;
+      subHtml=`月薪 ${fmtMoney(S.salary)} · ${expTxt} · 第 ${t.levelIndex+1}/${t.track.ladder.length} 级`;
+      const n=nextPromotion(S);
+      if(!n){
+        body=`<div class="promote-box"><div class="promote-next">🏔️ 已达 <b>${t.track.name}</b> 顶峰,无可晋升</div></div>`;
+      }else{
+        const ok=meetsReq(S,n.job.req);
+        body=`<div class="promote-box">
+          <div class="promote-next">下一级: <b>${n.job.name}</b> · 月薪 ${fmtMoney(n.job.salary)}</div>
+          <div class="promote-gap">${ok?'✅ 条件已满足,快去晋升!':'🔒 '+gapDesc(S,n.job)}</div>
+          ${ok?`<button class="promote-btn" onclick="G.promote()">⬆️ 争取晋升 (⚡1)</button>`:''}
+        </div>`;
+      }
+    }
+    return `<div class="career-card">
+      <div class="career-head">
+        <div><div class="career-title">${titleHtml}</div><div class="career-sub">${subHtml}</div></div>
+        <div class="career-route-link" onclick="G.showCareer()">职业路线 ›</div>
+      </div>
+      ${body}
+    </div>`;
+  },
+
+  renderPending(){
+    const e=S.pendingEvent;
+    const isCareer=!!e.career;
+    const titleTxt=isCareer?`💼 ${S.age}岁 · 职业抉择`:`🎭 ${S.age}岁 · 抉择`;
+    let html=`<div class="msg ${isCareer?'phase-intro':'story'}"><div class="title">${titleTxt}</div><div>${e.text}</div><div class="choices" style="margin-top:8px;">`;
+    if(e.choices)e.choices.forEach((c,i)=>{html+=`<button class="choice-btn ${isCareer?'ph':''}" onclick="G.chooseEvent(${i})">${c.text}</button>`;});
+    else html+=`<button class="choice-btn" onclick="G.chooseEvent(-1)">继续</button>`;
+    html+=`</div></div>`;
+    return html;
+  },
+
+  renderBottom(){
+    document.getElementById("bottom-bar").innerHTML=`
+      <button class="btn-secondary" onclick="G.showRelations()">👥 关系</button>
+      <button class="btn-secondary" onclick="G.showFinance()">📊 财务</button>
+      <button class="btn-primary" onclick="G.nextYear()">${S.ended?'🔄 重开':'⏭️ 下一年'}</button>`;
+  },
+
+  renderEnd(){
+    const net=this.netWorth();
+    let rank="😐 平凡的一生",color="var(--dim)";
+    const mul=S.talent==="hard_mode"?2:1;
+    const score=(net/10000+S.mood+S.health)*mul;
+    if(score>=1500){rank="🏆 传奇人生";color="var(--gold)";}
+    else if(score>=800){rank="🥇 事业有成";color="var(--gold)";}
+    else if(score>=400){rank="🥈 小康之家";color="var(--accent)";}
+    else if(score>=150){rank="🥉 温饱有余";color="var(--green)";}
+    else if(net<0){rank="💸 负债离场";color="var(--red)";}
+    const sp=S.relations.find(r=>r.type==="spouse");
+    const kids=S.relations.filter(r=>r.type==="child").length;
+    const achGot=ACHIEVEMENTS.filter(a=>S.achievements.includes(a.id));
+    return `<div class="msg" style="text-align:center;padding:22px;">
+      <div style="font-size:26px;margin-bottom:10px;">🎬 人生落幕</div>
+      <div style="color:var(--dim);margin-bottom:14px;">${S.endReason||"你走完了这一生"}</div>
+      <div style="font-size:20px;font-weight:bold;color:${color};margin-bottom:14px;">${rank}</div>
+      <div style="text-align:left;background:var(--card);padding:14px;border-radius:12px;font-size:13px;line-height:1.8;">
+        📊 <b>人生总结 (${S.age}岁)</b><br>
+        · 最终身家: <span style="color:var(--gold);">${fmtMoney(net)}</span><br>
+        · 最高职位: ${CAREERS[S.career]?.name}<br>
+        · 学历: ${EDUCATIONS[S.edu]?.name}<br>
+        · 婚姻: ${sp?`与 ${sp.name} 相伴`:"孑然一身"}<br>
+        · 子女: ${kids} 个<br>
+        · 健康 ${Math.round(S.health)} · 心情 ${Math.round(S.mood)}<br>
+        · 综合评分: <b style="color:${color};">${Math.round(score)}</b><br>
+      </div>
+      <div style="text-align:left;margin-top:12px;">🏅 <b>成就 (${achGot.length}/${ACHIEVEMENTS.length})</b><br>
+        ${ACHIEVEMENTS.map(a=>`<span class="ach ${S.achievements.includes(a.id)?'got':''}">${S.achievements.includes(a.id)?'✓':'○'} ${a.name}</span>`).join('')}
+      </div>
+      <button class="choice-btn" style="margin-top:14px;text-align:center;background:var(--accent);color:#fff;" onclick="G.showReview()">📖 查看人生回顾</button>
+      <button class="choice-btn" style="margin-top:6px;text-align:center;background:var(--gold);color:#000;" onclick="G.restart()">🔄 再活一次</button>
+    </div>`;
+  },
+  doAction(id){
+    if(S.ended||S.pendingEvent)return;
+    const a=ACTIONS.find(x=>x.id===id);if(!a)return;
+    if(S.ap<a.ap){msg("行动点不够!","bad");this.render();return;}
+    if(a.cost&&S.money<a.cost){msg("钱不够!","bad");this.render();return;}
+    if(a.cond&&!a.cond(S)){msg("条件不满足","bad");this.render();return;}
+    S.ap-=a.ap; a.perform(S);
+    this.checkAchievements();
+    this.render();
+  },
+
+  nextYear(){
+    if(S.ended){this.restart();return;}
+    if(S.pendingEvent){msg("请先处理当前抉择","bad");this.render();return;}
+    this.advanceYear();
+  },
+
+  advanceYear(){
+    const oldPhase=phaseOf(S.age).id;
+    S.age++;
+    // 收支
+    S.money+=(S.salary-S.monthlyExpense)*12;
+    if(S.career!=="none"&&S.career!=="retired")S.exp++;
+    // 基金: 理财技能挂钩收益率与波动
+    if(S.stocks>0){
+      const fin=S.skills.skill_finance||0;
+      const base=0.02+fin*0.015;          // 理财越高,期望收益越高
+      const vol=Math.max(0.05,0.22-fin*0.02); // 理财越高,波动越小
+      const ret=base+rand(-vol,vol);
+      const before=S.stocks;
+      S.stocks=Math.max(0,Math.round(S.stocks*(1+ret)));
+      const diff=S.stocks-before;
+      if(Math.abs(diff)>=2000)msg(`基金年度${diff>=0?'收益':'亏损'} ${fmtMoney(Math.abs(diff))} (理财Lv${fin})`,diff>=0?"good":"bad");
+    }
+    if(S.flags.hasHouse)S.assets=Math.round(S.assets*1.02);
+    // 创业公司自然波动(不经营则缓慢缩水)
+    if(S.startup){ S.startup.valuation=Math.max(0,Math.round(S.startup.valuation*rand(0.95,1.05))); if(S.startup.valuation<=0){S.startup=null;S.career="none";S.salary=0;S.flags.startupFailed=true;msg("⚠️ 公司资金链断裂,倒闭了","danger");}}
+    // 心情自然衰减(天赋/家庭联动)
+    let moodDecay=4;
+    if(S.talent==="rich_kid")moodDecay+=2;
+    // 家人冷淡拉低心情,和睦提升心情
+    const fam=S.relations.filter(r=>r.type==="family"||r.type==="child"||r.type==="spouse");
+    if(fam.length){
+      const avg=fam.reduce((a,r)=>a+r.closeness,0)/fam.length;
+      if(avg<30){moodDecay+=4;msg("家人关系冷淡,心里不是滋味","bad");}
+      else if(avg>=75)moodDecay-=3;
+    }
+    S.mood=clamp(S.mood-moodDecay,0,100);
+    // 健康衰减(体力抗衰老)
+    const fit=S.skills.skill_fitness||0;
+    let hpDecay=0;
+    if(S.age>45)hpDecay+=2; if(S.age>60)hpDecay+=3; if(S.age>75)hpDecay+=5;
+    hpDecay=Math.max(0,hpDecay-Math.floor(fit/3));  // 体力每3点减1衰减
+    if(S.talent==="athlete")S.health=clamp(S.health+5,0,100);
+    S.health=clamp(S.health-hpDecay,0,100);
+    // 关系自然疏远
+    S.relations.forEach(r=>r.closeness=clamp(r.closeness-3,0,100));
+    if(S.partner)S.partner.closeness=clamp(S.partner.closeness-5,0,100);
+    // 家人年龄增长 + 高龄离世(父母)
+    S.relations.filter(r=>r.type==="family").forEach(r=>{ if(r.age!==undefined)r.age++; });
+    // 行动点(体力提升上限)
+    S.apMax=(S.age>=65?6:(S.age>=45?8:10))+Math.floor(fit/5);
+    S.ap=S.apMax;
+    // 阶段切换
+    const np=phaseOf(S.age);
+    if(np.id!==oldPhase)this.startPhase(np);
+    // 事件
+    this.rollEvent();
+    this.checkAchievements();
+    this.checkEnd();
+    this.render();
+  },
+
+  rollEvent(){
+    const ph=phaseOf(S.age).id;
+    let pool=EVENTS.filter(e=>(e.phase===ph||e.phase==="any")&&(!e.cond||e.cond(S))&&!(e.once&&S.seenOnce[e.text]));
+    if(!pool.length)return;
+    // 欧皇天赋: 好事件权重翻倍
+    const total=pool.reduce((a,e)=>a+((e.weight||1)*((S.talent==="lucky"&&e.type==="good")?2:1)),0);
+    let r=Math.random()*total;
+    for(const e of pool){
+      r-=(e.weight||1)*((S.talent==="lucky"&&e.type==="good")?2:1);
+      if(r<=0){
+        if(e.once)S.seenOnce[e.text]=true;
+        if(e.choices)S.pendingEvent=e;
+        else{e.effects&&e.effects(S);msg(e.text,e.type||"event");}
+        return;
+      }
+    }
+  },
+
+  chooseEvent(i){
+    const e=S.pendingEvent;if(!e)return;
+    if(i===-1){e.effects&&e.effects(S);msg(e.text,e.type||"event");}
+    else if(e.choices&&e.choices[i]){e.choices[i].effects(S);msg(`${e.text} → ${e.choices[i].text}`,"story");}
+    S.pendingEvent=null;
+    this.checkAchievements();
+    this.checkEnd();
+    this.render();
+  },
+
+  checkAchievements(){
+    ACHIEVEMENTS.forEach(a=>{
+      if(!S.achievements.includes(a.id)&&a.check(S)){
+        S.achievements.push(a.id);
+        msg(`🏅 达成成就: ${a.name}`,"story");
+      }
+    });
+  },
+
+  checkEnd(){
+    if(S.health<=0){S.ended=true;S.endReason="健康耗尽,你病倒了...";return;}
+    if(S.mood<=0){S.ended=true;S.endReason="你陷入了深深的抑郁...";return;}
+    if(S.money<-500000){S.ended=true;S.endReason="债台高筑,无力回天...";return;}
+    if(S.age>=80){S.ended=true;S.endReason="80岁,你安详地回顾了这一生";return;}
+    const net=this.netWorth();
+    if(net>=3000000&&S.age>=40&&S.mood>=60&&!S.flags.freeHinted){
+      S.flags.freeHinted=true;
+      msg("🎉 你已财务自由! 可继续生活,或在'事业'里'提前退休'完美通关",void 0);
+    }
+  },
+
+  autoRetire(){
+    this.openModal(`<h3>⏩ 快进余生</h3><p style="color:var(--dim);">将自动度过到 80 岁(或直到人生结束),期间事件自动处理。确定吗?</p><div style="display:flex;gap:10px;margin-top:16px;"><button class="choice-btn" style="flex:1;background:var(--accent);color:#fff;" onclick="G.doAutoRetire()">确定快进</button><button class="choice-btn" style="flex:1;" onclick="G.closeModal()">取消</button></div>`);
+  },
+  doAutoRetire(){
+    this.closeModal();
+    if(!S.flags.retired){S.career="retired";S.salary=0;S.flags.retired=true;}
+    let guard=0;
+    while(!S.ended&&S.age<80&&guard<100){
+      guard++;
+      // 自动处理: 优先健身/休息保命
+      const oldPhase=phaseOf(S.age).id;
+      S.age++;
+      S.money+=(S.salary-S.monthlyExpense)*12;
+      if(S.stocks>0){const fin=S.skills.skill_finance||0;S.stocks=Math.max(0,Math.round(S.stocks*(1+0.02+fin*0.01+rand(-0.1,0.1))));}
+      S.mood=clamp(S.mood-2,0,100); // 退休后心情衰减慢
+      const fit=S.skills.skill_fitness||0;
+      let hp=0;if(S.age>60)hp+=3;if(S.age>75)hp+=5;hp=Math.max(0,hp-Math.floor(fit/3));
+      S.health=clamp(S.health-hp+2,0,100); // 安逸+2
+      const np=phaseOf(S.age);if(np.id!==oldPhase)this.startPhase(np);
+      // 只处理无选择事件
+      const ph=phaseOf(S.age).id;
+      const pool=EVENTS.filter(e=>(e.phase===ph||e.phase==="any")&&!e.choices&&(!e.cond||e.cond(S))&&!(e.once&&S.seenOnce[e.text]));
+      if(pool.length&&Math.random()<0.6){const e=pool[Math.floor(Math.random()*pool.length)];if(e.once)S.seenOnce[e.text]=true;e.effects&&e.effects(S);msg(e.text,e.type||"event");}
+      this.checkEnd();
+    }
+    if(!S.ended){S.ended=true;S.endReason="你安然度过了晚年,寿终正寝";}
+    this.checkAchievements();
+    this.render();
+  },
+  promote(){
+    if(S.ended||S.pendingEvent)return;
+    const n=nextPromotion(S);
+    if(!n){msg("当前已无可晋升职位","bad");this.render();return;}
+    if(S.ap<1){msg("行动点不够,无法争取晋升!","bad");this.render();return;}
+    if(!meetsReq(S,n.job.req)){msg(`晋升条件不足: ${gapDesc(S,n.job)}`,"bad");this.render();return;}
+    S.ap-=1;
+    S.career=n.job.id;S.salary=n.job.salary;
+    msg(`🎉 晋升成功! 你成为了 ${n.job.name} (月薪 ${fmtMoney(n.job.salary)})`,"story");
+    this.checkAchievements();
+    this.closeModal();
+    this.render();
+  },
+  showCareer(){
+    const t=trackOf(S.career);
+    let html=`<h3>💼 职业发展路线</h3>`;
+    // 当前职业状态条
+    const curName=CAREERS[S.career]?.name||"无业";
+    const curTrackName=t?t.track.name:(S.career==="startup"?"创业赛道":(S.career==="retired"?"已退休":"待就业"));
+    html+=`<div class="box" style="margin-bottom:12px;">
+      <div class="kv"><span>当前职位</span><b>${curName}</b></div>
+      <div class="kv"><span>所在赛道</span><b>${curTrackName}</b></div>
+      <div class="kv"><span>月薪 / 经验</span><b style="color:var(--gold);">${fmtMoney(S.salary)} · ${S.exp}年</b></div>
+    </div>`;
+    html+=`<div style="color:var(--dim);font-size:11px;margin-bottom:10px;">💡 同赛道逐级晋升(满足条件即可),也可跨赛道应聘已达标的职位。</div>`;
+    // 按赛道渲染晋升阶梯
+    CAREER_TRACKS.forEach(tr=>{
+      html+=`<div class="track-block"><div class="track-name"><span style="color:${tr.color};">${tr.emoji} ${tr.name}</span></div>`;
+      tr.ladder.forEach((job,idx)=>{
+        const isCurrent=S.career===job.id&&(!t||t.track.id===tr.id);
+        const reached=t&&t.track.id===tr.id&&idx<=t.levelIndex;
+        const ok=meetsReq(S,job.req);
+        // 可点击条件: 当前赛道的下一级(晋升) 或 任意达标且非当前的职位(应聘)
+        const isNextInTrack=t&&t.track.id===tr.id&&idx===t.levelIndex+1;
+        const clickable=!isCurrent&&ok&&(isNextInTrack||!(t&&t.track.id===tr.id&&idx<=t.levelIndex));
+        let cls="ladder-step";
+        if(isCurrent)cls+=" current";else if(reached)cls+=" done";else if(!ok)cls+=" locked";
+        let dot=reached?"✓":(idx+1);
+        let onclick="";
+        if(clickable){
+          onclick = isNextInTrack ? `onclick="G.promote()"` : `onclick="applyJob('${job.id}');G.closeModal()"`;
+        }
+        const rightTxt=isCurrent?"当前":(reached?"已过":(ok?(isNextInTrack?"可晋升 ⬆️":"可应聘"):gapDesc(S,job)));
+        html+=`<div class="${cls}" ${onclick}>
+          <div class="ladder-dot">${dot}</div>
+          <div class="ladder-main"><div class="ln">${job.name}</div><div class="lr">${rightTxt}</div></div>
+          <div class="ladder-sal">${job.salary>0?fmtMoney(job.salary)+'/月':'—'}</div>
+        </div>`;
+      });
+      html+=`</div>`;
+    });
+    html+=`<div style="margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,.1);color:var(--dim);font-size:12px;margin-bottom:8px;">深造:</div>`;
+    if(S.edu==="high_school"){
+      const cost=EDUCATIONS.college.cost,ok=S.money>=cost;
+      html+=`<button class="choice-btn ${ok?'':'disabled'}" onclick="G.enroll('college')"><div><b>📖 读大学</b> ·4年·${fmtMoney(cost)}</div><div class="cost">${ok?'技能+3, 解锁高薪职业':`❌ 学费不足(当前${fmtMoney(S.money)})`}</div></button>`;
+      if(!ok)html+=`<button class="choice-btn" onclick="G.enrollLoan('college')"><div><b>🏦 助学贷款读大学</b></div><div class="cost">立即入学,月供+1000(10年)</div></button>`;
+    }
+    if(S.edu==="college"){
+      const cost=EDUCATIONS.master.cost,ok=S.money>=cost;
+      html+=`<button class="choice-btn ${ok?'':'disabled'}" onclick="G.enroll('master')"><div><b>📖 读硕士</b> ·2年·${fmtMoney(cost)}</div><div class="cost">${ok?'编程+2,理财+1':`❌ 学费不足(当前${fmtMoney(S.money)})`}</div></button>`;
+    }
+    if(S.career!=="none"&&S.career!=="retired")html+=`<button class="choice-btn" onclick="applyJob('none');G.closeModal()"><div><b>🚪 辞职</b></div></button>`;
+    if(S.age>=50)html+=`<button class="choice-btn" onclick="G.retire()"><div><b>🌴 退休</b></div><div class="cost">停止工作,安享晚年</div></button>`;
+    const net=this.netWorth();
+    if(net>=3000000&&S.age>=40)html+=`<button class="choice-btn hi" onclick="G.finishGame()"><div><b>🏆 提前退休,财务自由</b></div><div class="cost">以完美结局结束游戏</div></button>`;
+    this.openModal(html);
+  },
+
+  enroll(edu){const e=EDUCATIONS[edu];if(S.money<e.cost){msg("学费不够!","bad");this.render();return;}S.money-=e.cost;S.edu=edu;S.age+=e.years;if(edu==="college"){S.skills.skill_code++;S.skills.skill_finance++;S.skills.skill_social++;}if(edu==="master"){S.skills.skill_code+=2;S.skills.skill_finance++;}msg(`完成${e.name}学业(${e.years}年)`,"good");this.closeModal();this.render();},
+  enrollLoan(edu){const e=EDUCATIONS[edu];S.edu=edu;S.age+=e.years;S.monthlyExpense+=1000;if(edu==="college"){S.skills.skill_code++;S.skills.skill_finance++;S.skills.skill_social++;}msg(`助学贷款完成${e.name}(月供+1000)`,"good");this.closeModal();this.render();},
+  retire(){S.career="retired";S.salary=0;S.flags.retired=true;msg("你退休了! 🌴","story");this.closeModal();this.render();},
+  finishGame(){S.ended=true;S.endReason="你选择在人生巅峰急流勇退,享受自由人生";this.closeModal();this.render();},
+
+  showRelations(){
+    let html=`<h3>👥 人际关系</h3>`;
+    html+=`<div style="color:var(--dim);font-size:11px;margin-bottom:10px;">💡 亲密度低于30→心情持续下降 | 高于75→心情自动恢复</div>`;
+    if(S.partner)html+=`<div class="rel-card"><div class="rel-avatar" style="background:var(--orange);">😊</div><div class="rel-info"><div class="name">${S.partner.name} <span style="color:var(--dim);">(暧昧中)</span></div><div class="desc">${S.partner.personality}型 · 亲密度 ${S.partner.closeness}<div class="mini-track"><div class="mini-fill" style="width:${S.partner.closeness}%;background:var(--orange);"></div></div></div></div></div>`;
+    S.relations.forEach(r=>{
+      const col=r.type==='spouse'?'var(--red)':r.type==='lover'?'var(--purple)':r.type==='child'?'var(--green)':'var(--dim)';
+      html+=`<div class="rel-card"><div class="rel-avatar" style="background:${col};">${r.emoji}</div><div class="rel-info"><div class="name">${r.name} <span style="color:var(--dim);font-size:11px;">${relTypeName(r.type)}${r.age!==undefined?' · '+r.age+'岁':''}</span></div><div class="desc"><div class="mini-track"><div class="mini-fill" style="width:${r.closeness}%;background:${col};"></div></div>亲密度 ${r.closeness}</div></div></div>`;
+    });
+    if(!S.partner&&!S.relations.some(r=>r.type==="lover"||r.type==="spouse"))html+=`<div style="color:var(--dim);font-size:12px;margin-top:8px;">💡 用'相亲/认识新人'开始脱单</div>`;
+    this.openModal(html);
+  },
+
+  showFinance(){
+    const net=this.netWorth();
+    const fin=S.skills.skill_finance||0;
+    this.openModal(`<h3>📊 财务状况</h3>
+      <div class="box">
+        <div class="kv"><span>💵 现金</span><b>${fmtMoney(S.money)}</b></div>
+        <div class="kv"><span>📈 基金</span><b>${fmtMoney(S.stocks)}</b></div>
+        <div class="kv"><span>🏠 资产</span><b>${fmtMoney(S.assets)}</b></div>
+        ${S.startup?`<div class="kv"><span>🚀 公司(${S.startup.name})</span><b>${fmtMoney(S.startup.valuation)}</b></div>`:''}
+        <hr style="border-color:rgba(255,255,255,.1);margin:6px 0;">
+        <div class="kv" style="font-size:15px;"><span>净资产</span><b style="color:var(--gold);">${fmtMoney(net)}</b></div>
+      </div>
+      <div class="box">
+        <div class="kv" style="color:var(--green);"><span>月收入</span><b>+${fmtMoney(S.salary)}</b></div>
+        <div class="kv" style="color:var(--red);"><span>月支出</span><b>-${fmtMoney(S.monthlyExpense)}</b></div>
+        <div class="kv"><span>年净收入</span><b style="color:${(S.salary-S.monthlyExpense)>=0?'var(--green)':'var(--red)'};">${fmtMoney((S.salary-S.monthlyExpense)*12)}</b></div>
+      </div>
+      <div class="box" style="font-size:12px;color:var(--dim);">
+        📈 <b>理财技能 Lv${fin}</b> 效果:<br>
+        · 基金期望收益: <span style="color:var(--green);">+${((0.02+fin*0.015)*100).toFixed(1)}%/年</span><br>
+        · 波动幅度: ±${((Math.max(0.05,0.22-fin*0.02))*100).toFixed(1)}%<br>
+        · 提升理财技能可降低风险、提高收益<br>
+        <br>
+        💡 净资产300万+且40岁+且心情≥60 → 可提前退休通关
+      </div>`);
+  },
+
+  showReview(){
+    let html=`<h3>📖 人生回顾</h3>`;
+    if(!S.history.length){html+=`<div style="color:var(--dim);font-size:12px;">暂无重大事件记录</div>`;}
+    else S.history.forEach(h=>{
+      const cls=h.type==="good"?"good":h.type==="bad"?"bad":h.type==="danger"?"danger":"story";
+      html+=`<div class="msg ${cls}" style="font-size:11px;">[${h.age}岁] ${h.text.replace(/\n/g,'<br>')}</div>`;
+    });
+    this.openModal(html);
+  },
+
+  openModal(html){document.getElementById("modal").innerHTML=html;document.getElementById("modal-overlay").classList.add("show");},
+  closeModal(e){if(e&&e.target!==document.getElementById("modal-overlay"))return;document.getElementById("modal-overlay").classList.remove("show");},
+  restart(){this.openModal(`<h3>🔄 重新开始</h3><p style="color:var(--dim);">确定重新开始一段全新的人生吗?<br>当前存档将被清除。</p><div style="display:flex;gap:10px;margin-top:16px;"><button class="choice-btn" style="flex:1;background:var(--red);color:#fff;" onclick="G.doRestart()">确定重来</button><button class="choice-btn" style="flex:1;" onclick="G.closeModal()">取消</button></div>`);},
+  doRestart(){localStorage.removeItem(SAVE_KEY);S=newState();this.closeModal();this.showTalentPick();},
+};
+
+G.init();
+</script>
+</body>
+</html>
